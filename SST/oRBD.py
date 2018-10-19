@@ -721,61 +721,25 @@ class RBD:
         return
 
     """------------------------------------------------------------------------------------ """
+
     def CheckXMLTables(self):
         
-        if  not os.path.exists(self.PathToXML+'SSTDataFormatTimeSpanTable.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'SSTDataFormatTimeSpanTable.xml not found')
-            print ('Exiting...')
-            return False
+        xml_list = ["SSTDataFormatTimeSpanTable.xml",
+                    "DataFormat-2002-12-14_to_2100-01-01.xml",
+                    "DataFormat-2002-12-04_to_2002-12-13.xml",
+                    "DataFormat-1999-05-02_to_2002-05-20.xml",
+                    "DataFormat-1900-01-01_to_1999-05-01.xml",
+                    "AuxiliaryDataFormat-2002-12-14_to_2100-01-01.xml",
+                    "AuxiliaryDataFormat-2002-11-24_to_2002-12-13.xml",
+                    "AuxiliaryDataFormat-2002-09-16_to_2002-11-23.xml",
+                    "AuxiliaryDataFormat-1900-01-01_to_2002-09-15.xml"]
 
-        if  not os.path.exists(self.PathToXML+'DataFormat-2002-12-14_to_2100-01-01.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'DataFormat-2002-12-14_to_2100-01-01.xml not found')
-            print ('Exiting...')
-            return False
-
-        if  not os.path.exists(self.PathToXML+'DataFormat-2002-12-04_to_2002-12-13.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'DataFormat-2002-12-04_to_2002-12-13.xml not found')
-            print ('Exiting...')
-            return False
-        
-        if  not os.path.exists(self.PathToXML+'DataFormat-1999-05-02_to_2002-05-20.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'DataFormat-1999-05-02_to_2002-05-20.xml not found')
-            print ('Exiting...')
-            return False
-
-        if  not os.path.exists(self.PathToXML+'DataFormat-1900-01-01_to_1999-05-01.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'DataFormat-1900-01-01_to_1999-05-01.xml not found')
-            print ('Exiting...')
-            return False
-
-        if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-2002-12-14_to_2100-01-01.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-12-14_to_2100-01-01.xml not found')
-            print ('Exiting...')
-            return False
-
-        if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-2002-11-24_to_2002-12-13.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-11-24_to_2002-12-13.xml not found')
-            print ('Exiting...')
-            return False
-
-        if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-2002-09-16_to_2002-11-23.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'AuxiliaryDataFormat-2002-09-16_to_2002-11-23.xml not found')
-            print ('Exiting...')
-            return False
-
-        if  not os.path.exists(self.PathToXML+'AuxiliaryDataFormat-1900-01-01_to_2002-09-15.xml')  :
-            print ('  ')
-            print ('File : '+ self.PathToXML+'AuxiliaryDataFormat-1900-01-01_to_2002-09-15.xml not found')
-            print ('Exiting...')
-            return False
+        for xml in xml_list:
+            if not os.path.exists(self.PathToXML + xml):
+                print("  ")
+                print("File : {} not found".format(self.PathToXML + xml))
+                print("Exiting...")
+                return False
 
         return True
 
