@@ -385,7 +385,6 @@ class RBD:
             return 
         
         self.define_fmt()
-        self.CleanPaths()
         self.History = []
         
         _fmt_    = self.bin_header['fmt']
@@ -499,7 +498,6 @@ class RBD:
                                                                 self.MetaData['ISODate'], _hhmmss_[0],
                                                                 _hhmmss_[1])
 
-        self.CleanPaths()
         self.MetaData.update({'FITSfname':FITSfname})
 
         _isodate_ = self.MetaData['ISODate']
@@ -594,7 +592,6 @@ class RBD:
 
         _hduList_ = fits.HDUList([_hdu_,_tbhdu_])
 
-        self.CleanPaths() 
             
         if os.path.exists(self.OutputPath+self.MetaData['FITSfname']) :
             print ('File '+ self.OutputPath+self.MetaData['FITSfname']+ '  already exist. Aborting....')
@@ -805,12 +802,12 @@ class RBD:
         
         self.OutputPath = OutputPath
         self.InputPath  = InputPath
+        self.CleanPaths()
 
         self.Data   = {}
         self.MetaData = {}
         self.History = []
         self.version = Version
-        return 
 
 ######################################################################################
 
@@ -871,4 +868,3 @@ class DataTimeSpan:
         
         _tt_ = xmlet.parse(PathToXML+'SSTDataFormatTimeSpanTable.xml')
         self.table = _tt_.getroot()
-        return
