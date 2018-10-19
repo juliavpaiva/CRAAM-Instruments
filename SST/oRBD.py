@@ -469,20 +469,7 @@ class RBD:
     
     """-----------------------------------------------------------------------------"""
 
-    def writeFITS(self) :
-
-        _hhmmss_ = self.timeSpan()
-
-        return self.writeFITSwithName('sst_'  +
-                               self.MetaData['SSTType'].lower() + '_' +
-                               self.MetaData['ISODate'] + 'T' +
-                               _hhmmss_[0]+'-' + _hhmmss_[1] +
-                               '_level0.fits')
-
-
-    """-----------------------------------------------------------------------------"""
-
-    def writeFITSwithName(self,FITSfname):
+    def writeFITS(self, FITSfname=None):
 
         """
         writeFITS:
@@ -505,6 +492,13 @@ class RBD:
              Return value added on 2017-11-02
         
         """
+
+        if not FITSfname:
+            _hhmmss_ = self.timeSpan()
+            FITSfname = "sst_{}_{}T{}-{}_level0.fits".format(self.MetaData['SSTType'].lower(),
+                                                                self.MetaData['ISODate'], _hhmmss_[0],
+                                                                _hhmmss_[1])
+
         self.CleanPaths()
         self.MetaData.update({'FITSfname':FITSfname})
 
