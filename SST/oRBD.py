@@ -747,13 +747,13 @@ class RBD:
 
     def __init__(self,PathToXML='',InputPath='./',OutputPath='./'):
 
-        # PathToXML should point to tha directory where the XML tables are copied
+        # PathToXML should point to the directory where the XML tables are copied
         # When not defined, look at the environment
-        if (isinstance(PathToXML,str) and len(PathToXML) == 0):
+        if not PathToXML:
             if ('RBDXMLPATH' in os.environ.keys()):
                     self.PathToXML = os.environ['RBDXMLPATH']
             else:
-                self.PathToXML = './'
+                self.PathToXML = 'XMLtables/'
         else:
             self.PathToXML=PathToXML
 
