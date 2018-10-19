@@ -4,9 +4,6 @@ import numpy as np
 import xml.etree.ElementTree as xmlet
 from astropy.io import fits
 
-# Our methods
-import oRBD
-
 ################################################################
 #                                                              #
 #  Version Number. Change everytime the code is changed.       #
@@ -14,7 +11,7 @@ import oRBD
 Version = '20181015T1848BRT'                                   #
 #                                                              #
 ################################################################
-class RBD(object):
+class RBD:
 
 ###############################################################################################
 #
@@ -357,7 +354,7 @@ class RBD(object):
     def read_xml_header(self):
         if not self.getISODate():
             return False
-        _tt_        = oRBD.DataTimeSpan(self.PathToXML)
+        _tt_        = DataTimeSpan(self.PathToXML)
         _hfname_    = _tt_.findHeaderFile(SSTType=self.MetaData['SSTType'],SSTDate=self.MetaData['ISODate'])
         _xmlheader_ = xmlet.parse(self.PathToXML + _hfname_)
         self.hfname = _hfname_
@@ -823,7 +820,7 @@ class RBD(object):
 
 ######################################################################################
 
-class DataTimeSpan(object):
+class DataTimeSpan:
     """
 
     DataTimeSpan
