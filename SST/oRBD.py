@@ -1,8 +1,11 @@
 # External methods
-import sys, string, os, struct, glob
+import sys, string, os, struct
 import numpy as np
 import xml.etree.ElementTree as xmlet
 from astropy.io import fits
+
+#python 3.4
+from pathlib import Path
 
 ################################################################
 #                                                              #
@@ -197,21 +200,6 @@ class RBD:
         
         # Return the first and last _nonzero_ time converted to ISO standards
         return self.getISOTime(self.Data['time'][_nonzero_[0][0]]) ,self.getISOTime(self.Data['time'][_nonzero_[0][-1]])
-        
-    
-    """-------------------------------------------------------------------------------------"""
-    def base_name(self,fname):
-        """
-        base_name:
-            Simple procedure to get the base name of a full described file name
-            /path/to/file/filename --> filename
-
-        Change Record:
-            Guigue @ Sampa - 2017-08-26
-
-        """
-        _s_ = fname.strip().split('/')
-        return _s_[-1]
 
     """------------------------------------------------------------------------------------ """
 
@@ -250,7 +238,7 @@ class RBD:
         Change Record:
         First written by Guigue @ Sampa on 2017-08-19
         """
-        _bname_=self.base_name(self.RBDfname)                                # Get the base name (remove /path/to/file )
+        _bname_ = self.RBDfname.name                               # Get the base name (remove /path/to/file )
         try:
             _name1_,_name2_=_bname_.strip().split(".")                       # Does it have hours?
         except:
@@ -284,7 +272,7 @@ class RBD:
         elif (len(_name1_) == 9):
             date=str(int(_name1_[2:5])+1900) + '-' + _name1_[5:7] + '-' + _name1_[7:9]
         else:
-            print (self.RBDfname+ '  is a wrong RBD Filename. Aborting...')
+            print (str(self.RBDfname) + ' is a wrong RBD Filename. Aborting...')
             return False
 
         # From the time description of the RBD file name we get
@@ -356,7 +344,7 @@ class RBD:
             return False
         _tt_        = DataTimeSpan(self.PathToXML)
         _hfname_    = _tt_.findHeaderFile(SSTType=self.MetaData['SSTType'],SSTDate=self.MetaData['ISODate'])
-        _xmlheader_ = xmlet.parse(self.PathToXML + _hfname_)
+        _xmlheader_ = xmlet.parse(self.PathToXML / Path(_hfname_))
         self.hfname = _hfname_
         self.header = _xmlheader_.getroot()
         return True
@@ -380,7 +368,7 @@ class RBD:
 
         """
 
-        self.RBDfname = RBDfname
+        self.RBDfname = Path(RBDfname)
         if not self.read_xml_header():
             return 
         
@@ -392,8 +380,8 @@ class RBD:
         _ranges_ = self.bin_header['ranges']
         _Nfields_= len(_header_)
         
-        if os.path.exists(self.InputPath+self.RBDfname) :
-            _fd_         = os.open(self.InputPath+self.RBDfname,os.O_RDONLY)
+        if (self.InputPath / self.RBDfname).exists() :
+            _fd_         = os.open(self.InputPath / self.RBDfname,os.O_RDONLY)
             _nrec_       = os.fstat(_fd_).st_size // struct.calcsize(_fmt_)
 
             for child in self.header:
@@ -434,37 +422,12 @@ class RBD:
                             
             os.close(_fd_)
         else:
-            print ('File '+self.InputPath+self.RBDfname+'  not found. Aborting...')
+            print ('File ' + str(self.InputPath / self.RBDfname) + ' not found. Aborting...')
             return False
 
         self.History.append('Converted to FITS level-0 with oRBD.py version '+self.version)
         
         return True
-
-    """-----------------------------------------------------------------------------"""
-    def CleanPaths(self):
-        
-        """
-        It seems that fits.writeto does not understand the meaning of '~/'
-        We chhange for $HOME/
-        """
-        path = self.OutputPath.strip().split('/')
-        if (path[0] == '~') : path[0]=os.environ['HOME']
-        newpath=''
-        for ipath in path:
-            newpath+=ipath+'/'
-        if newpath[-2]=='/' : newpath=newpath[0:-1]
-        self.OutputPath=newpath
-
-        path = self.InputPath.strip().split('/')
-        if (path[0] == '~') : path[0]=os.environ['HOME']
-        newpath=''
-        for ipath in path:
-            newpath+=ipath+'/'
-        if newpath[-2]=='/' : newpath=newpath[0:-1]
-        self.InputPath=newpath
-
-        return
     
     """-----------------------------------------------------------------------------"""
 
@@ -593,11 +556,11 @@ class RBD:
         _hduList_ = fits.HDUList([_hdu_,_tbhdu_])
 
             
-        if os.path.exists(self.OutputPath+self.MetaData['FITSfname']) :
-            print ('File '+ self.OutputPath+self.MetaData['FITSfname']+ '  already exist. Aborting....')
+        if (self.OutputPath / Path(self.MetaData['FITSfname'])).exists() :
+            print ('File ' + str(self.OutputPath / Path(self.MetaData['FITSfname'])) +  ' already exist. Aborting....')
             return False
         else:
-            _hduList_.writeto(self.OutputPath+self.MetaData['FITSfname'])
+            _hduList_.writeto(self.OutputPath / Path(self.MetaData['FITSfname']))
             
         return True
 
@@ -735,9 +698,11 @@ class RBD:
                     "AuxiliaryDataFormat-1900-01-01_to_2002-09-15.xml"]
 
         for xml in xml_list:
-            if not os.path.exists(self.PathToXML + xml):
+            #if not os.path.exists(self.PathToXML + xml):
+            xml = Path(xml)
+            if not (self.PathToXML / xml).exists():
                 print("  ")
-                print("File : {} not found".format(self.PathToXML + xml))
+                print("File : {} not found".format(self.PathToXML / xml))
                 print("Exiting...")
                 return False
 
@@ -755,18 +720,23 @@ class RBD:
             else:
                 self.PathToXML = 'XMLtables/'
         else:
-            self.PathToXML=PathToXML
+            self.PathToXML = PathToXML
 
+        #expanduser() returns the path with the user`s home directory if ~ present
+        self.PathToXML = Path(self.PathToXML).expanduser()
+
+        '''
         if self.PathToXML[-1] != '/' :
             self.PathToXML = self.PathToXML+'/'
+        '''
             
         # Check the existence of the XML tables
         if not self.CheckXMLTables() :
             return 
         
-        self.OutputPath = OutputPath
-        self.InputPath  = InputPath
-        self.CleanPaths()
+        self.OutputPath = Path(OutputPath).expanduser()
+        self.InputPath  = Path(InputPath).expanduser()
+        #self.CleanPaths()
 
         self.Data   = {}
         self.MetaData = {}
@@ -830,5 +800,5 @@ class DataTimeSpan:
 
     def __init__(self,PathToXML):
         
-        _tt_ = xmlet.parse(PathToXML+'SSTDataFormatTimeSpanTable.xml')
+        _tt_ = xmlet.parse(PathToXML / Path('SSTDataFormatTimeSpanTable.xml'))
         self.table = _tt_.getroot()
