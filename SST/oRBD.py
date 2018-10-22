@@ -698,11 +698,10 @@ class RBD:
                     "AuxiliaryDataFormat-1900-01-01_to_2002-09-15.xml"]
 
         for xml in xml_list:
-            #if not os.path.exists(self.PathToXML + xml):
             xml = Path(xml)
             if not (self.PathToXML / xml).exists():
                 print("  ")
-                print("File : {} not found".format(self.PathToXML / xml))
+                print("File : {} not found".format(str(self.PathToXML / xml)))
                 print("Exiting...")
                 return False
 
@@ -724,11 +723,6 @@ class RBD:
 
         #expanduser() returns the path with the user`s home directory if ~ present
         self.PathToXML = Path(self.PathToXML).expanduser()
-
-        '''
-        if self.PathToXML[-1] != '/' :
-            self.PathToXML = self.PathToXML+'/'
-        '''
             
         # Check the existence of the XML tables
         if not self.CheckXMLTables() :
@@ -736,7 +730,6 @@ class RBD:
         
         self.OutputPath = Path(OutputPath).expanduser()
         self.InputPath  = Path(InputPath).expanduser()
-        #self.CleanPaths()
 
         self.Data   = {}
         self.MetaData = {}
