@@ -709,7 +709,7 @@ class RBD:
 
     """------------------------------------------------------------------------------------ """
 
-    def __init__(self,PathToXML='',InputPath='./',OutputPath='./'):
+    def __init__(self,PathToXML='',InputPath='./',OutputPath=None):
 
         # PathToXML should point to the directory where the XML tables are copied
         # When not defined, look at the environment
@@ -728,8 +728,8 @@ class RBD:
         if not self.CheckXMLTables() :
             return 
         
-        self.OutputPath = Path(OutputPath).expanduser()
         self.InputPath  = Path(InputPath).expanduser()
+        self.OutputPath = self.InputPath if not OutputPath else Path(OutputPath).expanduser()
 
         self.Data   = {}
         self.MetaData = {}
