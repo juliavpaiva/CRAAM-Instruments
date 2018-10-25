@@ -3,6 +3,7 @@ import sys, string, os, struct
 import numpy as np
 import xml.etree.ElementTree as xmlet
 from astropy.io import fits
+import pandas as pd
 
 #python 3.4
 from pathlib import Path
@@ -351,7 +352,7 @@ class RBD:
     
     """-----------------------------------------------------------------------------"""
     
-    def readRBDinDictionary(self,RBDfname='rs990501'):
+    def readRBDinDictionary(self,RBDfname):
         
         """
         readRBDinDictionary
@@ -563,6 +564,29 @@ class RBD:
             _hduList_.writeto(self.OutputPath / Path(self.MetaData['FITSfname']))
             
         return True
+
+    """------------------------------------------------------------------------------------ """
+
+    def writeCSV(self, fname=None):
+        
+        if not fname:
+            _hhmmss_ = self.timeSpan()
+            fname = "sst_{}_{}T{}-{}_level0.csv".format(self.MetaData['SSTType'].lower(),
+                                                                self.MetaData['ISODate'], _hhmmss_[0],
+                                                                _hhmmss_[1])
+        
+        data = dict()
+        for child in self.header:
+            var_name = child[0].text
+            if len(self.Data[var_name].shape) > 1:
+                for i in range(len(self.Data[var_name][0])):
+                    data.update({var_name + str(i + 1): self.Data[var_name][:,i]})
+            else:
+                data.update({var_name: self.Data[var_name]})
+                
+        df = pd.DataFrame(data=data)
+        df.to_csv(self.OutputPath / Path(fname), index=False)
+
 
     """------------------------------------------------------------------------------------ """
 
