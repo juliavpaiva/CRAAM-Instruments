@@ -567,14 +567,16 @@ class RBD:
 
     """------------------------------------------------------------------------------------ """
 
-    def writeCSV(self, fname=None):
-        
-        if not fname:
+    def writeCSV(self, CSVfname=None):
+
+        if not CSVfname:
             _hhmmss_ = self.timeSpan()
-            fname = "sst_{}_{}T{}-{}_level0.csv".format(self.MetaData['SSTType'].lower(),
+            CSVfname = "sst_{}_{}T{}-{}_level0.csv".format(self.MetaData['SSTType'].lower(),
                                                                 self.MetaData['ISODate'], _hhmmss_[0],
                                                                 _hhmmss_[1])
         
+        self.MetaData.update({'CSVfname':CSVfname})
+
         data = dict()
         for child in self.header:
             var_name = child[0].text
@@ -583,9 +585,9 @@ class RBD:
                     data.update({var_name + str(i + 1): self.Data[var_name][:,i]})
             else:
                 data.update({var_name: self.Data[var_name]})
-                
+
         df = pd.DataFrame(data=data)
-        df.to_csv(self.OutputPath / Path(fname), index=False)
+        df.to_csv(self.OutputPath / Path(CSVfname), index=False)
 
 
     """------------------------------------------------------------------------------------ """
