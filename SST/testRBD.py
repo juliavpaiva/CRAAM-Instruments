@@ -22,7 +22,7 @@
 #
 ##################################################################
 
-import oRBD
+from sst import oRBD
 
 d=oRBD.RBD(InputPath='~/Programming/CRAAM-Instruments/SST/TestData',
            OutputPath='~/Programming/CRAAM-Instruments/SST/TestData')

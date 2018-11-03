@@ -1,31 +1,12 @@
-# A simple test for the scripts
+from sst import oRBD
 
-import oSST
-d=oSST.SST()
-d.data_path='./TestData'
-d.initial_time=d.str2datetime('2002-12-21 15')
-d.final_time=d.str2datetime('2002-12-21 19')
-d.data_type='bi'
-d.read()
+d1=oRBD.RBD()
+d2=oRBD.RBD()
 
-t=oSST.TimeAxis()
-t.getTimeAxis(d,'dt')
+d1.readRBDinDictionary('TestData/rs1150621.1700')
+d2.readRBDinDictionary('TestData/rs1150621.1800')
 
-y=oSST.yAxis()
-y.getValues(d,'adc_sigma')
-
-import matplotlib.pyplot as plt
-plt.plot(t.time,y.adc_sigma[:,1])
-plt.xlabel('UT')
-plt.ylabel(y.AxisName[1]+' ('+y.AxisUnits+')')
-plt.show()
-
-
-#import oSSTMap
-#m=oSSTMap.Map(d)
-#m.getDataMaps(d)
-#tp=oSST.TotalPower()
-#tp.getTotalPower(d,oSST.Beams.two)
-
+d=oRBD.RBD()
+d.concat([d1,d2])    
 
 

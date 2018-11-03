@@ -30,7 +30,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import datetime as dt
 
-    import oRBD
+    from sst import oRBD
 
     if len(sys.argv) < 3 :
         print('Usage: ' + sys.argv[0] + ' RBDfilename ch')
