@@ -150,6 +150,17 @@ class RBD:
 
     """------------------------------------------------------------------------------------ """
 
+    def __getattr__(self, item):
+        
+        if item in self.MetaData:
+            return self.MetaData[item]
+        elif item in self.Data:
+            return self.Data[item]
+        else:
+            raise AttributeError("RBD has no attribute {}".format(item))
+
+    """------------------------------------------------------------------------------------ """
+
     def getVersion(self):
         return self.version
 
