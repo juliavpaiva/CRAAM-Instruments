@@ -121,8 +121,39 @@ class RBD:
 #
 ###############################################################################################
 
+    def __init__(self,PathToXML='',InputPath='./',OutputPath=None):
+
+        # PathToXML should point to the directory where the XML tables are copied
+        # When not defined, look at the environment
+        if not PathToXML:
+            if ('RBDXMLPATH' in os.environ.keys()):
+                    self.PathToXML = os.environ['RBDXMLPATH']
+            else:
+                self.PathToXML = 'XMLtables/'
+        else:
+            self.PathToXML = PathToXML
+
+        #expanduser() returns the path with the user`s home directory if ~ present
+        self.PathToXML = Path(self.PathToXML).expanduser()
+            
+        # Check the existence of the XML tables
+        if not self.CheckXMLTables() :
+            return 
+        
+        self.InputPath  = Path(InputPath).expanduser()
+        self.OutputPath = self.InputPath if not OutputPath else Path(OutputPath).expanduser()
+
+        self.Data   = {}
+        self.MetaData = {}
+        self.History = []
+        self.version = Version
+
+    """------------------------------------------------------------------------------------ """
+
     def getVersion(self):
         return self.version
+
+    """------------------------------------------------------------------------------------ """
         
     def getTimeAxis(self):
         """
@@ -733,35 +764,6 @@ class RBD:
 
         return True
 
-    """------------------------------------------------------------------------------------ """
-
-    def __init__(self,PathToXML='',InputPath='./',OutputPath=None):
-
-        # PathToXML should point to the directory where the XML tables are copied
-        # When not defined, look at the environment
-        if not PathToXML:
-            if ('RBDXMLPATH' in os.environ.keys()):
-                    self.PathToXML = os.environ['RBDXMLPATH']
-            else:
-                self.PathToXML = 'XMLtables/'
-        else:
-            self.PathToXML = PathToXML
-
-        #expanduser() returns the path with the user`s home directory if ~ present
-        self.PathToXML = Path(self.PathToXML).expanduser()
-            
-        # Check the existence of the XML tables
-        if not self.CheckXMLTables() :
-            return 
-        
-        self.InputPath  = Path(InputPath).expanduser()
-        self.OutputPath = self.InputPath if not OutputPath else Path(OutputPath).expanduser()
-
-        self.Data   = {}
-        self.MetaData = {}
-        self.History = []
-        self.version = Version
-
 ######################################################################################
 
 class DataTimeSpan:
@@ -784,6 +786,13 @@ class DataTimeSpan:
         Firts created by Guigue @ Sampa on 2017.08.19 (very cold indeed)
 
     """    
+
+    def __init__(self,PathToXML):
+        
+        _tt_ = xmlet.parse(PathToXML / Path('SSTDataFormatTimeSpanTable.xml'))
+        self.table = _tt_.getroot()
+
+    """------------------------------------------------------------------------------------ """
         
     def findHeaderFile(self,SSTType="Integration",SSTDate="1899-12-31"):
         """
@@ -814,10 +823,3 @@ class DataTimeSpan:
             if (child[0].text == filetype) and (child[1].text <= SSTDate) and (child[2].text >= SSTDate) :
                 DataDescriptionFileName=child[3].text
         return DataDescriptionFileName
-
-    """------------------------------------------------------------------------"""
-
-    def __init__(self,PathToXML):
-        
-        _tt_ = xmlet.parse(PathToXML / Path('SSTDataFormatTimeSpanTable.xml'))
-        self.table = _tt_.getroot()

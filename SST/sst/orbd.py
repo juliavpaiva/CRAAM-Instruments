@@ -27,4 +27,20 @@ def open(name, path_to_xml=None):
 class RBD:
 
     def from_file(self, name, path_to_xml):
+
+        """
+        from_file
+           It is the class method used to read a SST Raw Binary Data (RBD) from a file. The 
+           data is represented with class attributes representing SST variables, and data
+           is stored in a numpy ndarray. Every ndarray has the python dtype corresponding
+           to the original SST data. 
+
+        Output:
+           It returns a RBD object
+
+        Change Record:
+           First Written by Guigue @ Sampa - 2017-08-26
+
+        """
+
         return self
