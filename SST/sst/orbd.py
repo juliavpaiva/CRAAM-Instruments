@@ -87,20 +87,15 @@ class RBD:
             offset = 0
             if var_type == "xs:int":
                 var_dim += "J"
-                np_type = np.dtype("i4")
             elif var_type == "xs:unsignedShort":
                 var_dim += "I"
-                np_type = np.dtype("u2")
                 offset = 32768
             elif var_type == "xs:short":
                 var_dim += "I"
-                np_type = np.dtype("i2")
             elif var_type == "xs:byte":
                 var_dim += "B"
-                np_type = np.dtype("b")
             elif var_type == "xs:float":
                 var_dim += "E"
-                np_type = np.dtype("f4")
             
             fits_cols.append(fits.Column(name=var_name,
                                          format=var_dim,
