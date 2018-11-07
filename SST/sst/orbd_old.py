@@ -454,9 +454,10 @@ class RBD:
                     self.Data.update( {_VarName_ : np.array(np.empty([_nrec_,_VarDim_],_nptype_))})
 
             for _irec_ in range(_nrec_) :
+                #print(_fmt_)
                 _one_record_  = os.read(_fd_,struct.calcsize(_fmt_))
                 _ur_          = struct.unpack(_fmt_,_one_record_)
-
+                #print(_ranges_)
                 for _field_ in range(_Nfields_):
                     if (_ranges_[_field_][0] == _ranges_[_field_][1]) :
                         self.Data[_header_[_field_]][_irec_]= _ur_[_ranges_[_field_][0]]
