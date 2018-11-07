@@ -2,6 +2,8 @@ import struct
 from pathlib import Path
 import xml.etree.ElementTree as xmlet
 import numpy as np
+from astropy.io import fits
+from .utils import time
 
 def open_(name, path_to_xml=None):
 
@@ -36,6 +38,89 @@ class RBD:
         self.time = ""
         self.data = dict()
 
+    def get_time_span(self):
+        nonzero = self.data["time"].nonzero()
+        return time.iso_time(self.data["time"][nonzero[0][0]], self.data["time"][nonzero[0][-1]])
+
+    def to_fits(self, name=None, output_path=None):
+        t_start, t_end = self.get_time_span()
+        if not name:
+            name = "sst_{}_{}T{}-{}_level0.fits".format(self.type.lower(), self.date, t_start, t_end)
+        
+        hdu = fits.PrimaryHDU()
+        hdu.header.append(('origin', 'CRAAM/Universidade Presbiteriana Mackenzie', ''))
+        hdu.header.append(('telescop', 'Solar Submillimeter Telescope', ''))
+        hdu.header.append(('observat', 'CASLEO', ''))
+        hdu.header.append(('station', 'Lat = -31.79897222, Lon = -69.29669444, Height = 2.491 km', ''))
+        hdu.header.append(('tz', 'GMT-3', ''))
+
+        hdu.header.append(('date-obs', self.date, ''))
+        hdu.header.append(('t_start', self.date + 'T' + t_end,''))
+        hdu.header.append(('t_end', self.date + 'T' + t_start, ''))
+        hdu.header.append(('data_typ', self.type, ''))
+        if isinstance(self.filename,list) :
+            for name in self.filename:hdu.header.append(('origfile', name, 'SST Raw Binary Data file'))
+        else:
+            hdu.header.append(('origfile',self.filename, 'SST Raw Binary Data file'))
+            
+        hdu.header.append(('frequen', '212 GHz ch=1,2,3,4; 405 GHz ch=5,6', ''))
+
+        # About the Copyright
+        hdu.header.append(('comment', 'COPYRIGHT. Grant of use.', ''))
+        hdu.header.append(('comment', 'These data are property of Universidade Presbiteriana Mackenzie.'))
+        hdu.header.append(('comment', 'The Centro de Radio Astronomia e Astrofisica Mackenzie is reponsible'))
+        hdu.header.append(('comment', 'for their distribution. Grant of use permission is given for Academic ')) 
+        hdu.header.append(('comment', 'purposes only.'))
+
+        #History
+        # ...
+
+        dscal = 1.0
+        fits_cols = list()
+        for child in self.__header:
+
+            var_name = child[0].text
+            var_dim = child[1].text
+            var_type = child[2].text
+            var_unit = child[3].text
+
+            offset = 0
+            if var_type == "xs:int":
+                var_dim += "J"
+                np_type = np.dtype("i4")
+            elif var_type == "xs:unsignedShort":
+                var_dim += "I"
+                np_type = np.dtype("u2")
+                offset = 32768
+            elif var_type == "xs:short":
+                var_dim += "I"
+                np_type = np.dtype("i2")
+            elif var_type == "xs:byte":
+                var_dim += "B"
+                np_type = np.dtype("b")
+            elif var_type == "xs:float":
+                var_dim += "E"
+                np_type = np.dtype("f4")
+            
+            fits_cols.append(fits.Column(name=var_name,
+                                         format=var_dim,
+                                         unit=var_unit,
+                                         bscale=dscal,
+                                         bzero=offset,
+                                         array=self.data[var_name]))
+        
+        tbhdu = fits.BinTableHDU.from_columns(fits.ColDefs(fits_cols))
+        
+        tbhdu.header.append(('comment','Time is in hundred of microseconds (Hus) since 0 UT',''))
+        tbhdu.header.append(('comment','ADCu = Analog to Digital Conversion units. Proportional to Voltage',''))
+        tbhdu.header.append(('comment','mDeg = milli degree',''))
+        tbhdu.header.append(('comment','Temperatures are in Celsius',''))
+
+        hdulist = fits.HDUList([hdu, tbhdu])
+
+        hdulist.writeto(name)
+
+
     def __find_xml_header(self, path_to_xml):
         span_table = xmlet.parse(path_to_xml / Path("SSTDataFormatTimeSpanTable.xml")).getroot()
         filetype = "Data" if self.type == "Integration" or self.type == "Subintegration" else "Auxiliary"
@@ -46,11 +131,10 @@ class RBD:
         
         return xmlet.parse(path_to_xml / Path(data_description_filename)).getroot()
         
-    def __define_fmt(self, header):
+    def __define_fmt(self):
         bin_header = dict()
         struct_fmt = "="
-
-        for child in header:
+        for child in self.__header:
             var_name = child[0].text
             var_dim = int(child[1].text)
             var_type = child[2].text
@@ -113,8 +197,8 @@ class RBD:
         if len(date) > 1:
             self.time = date[1][:2] + ":" + date[1][2:4]
         
-        header = self.__find_xml_header(path_to_xml)
-        bin_header, struct_fmt = self.__define_fmt(header)
+        self.__header = self.__find_xml_header(path_to_xml)
+        bin_header, struct_fmt = self.__define_fmt()
 
         with open(path, "rb") as f:
             
