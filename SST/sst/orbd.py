@@ -5,7 +5,7 @@ import numpy as np
 from astropy.io import fits
 from .utils import time
 
-def open_(name, path_to_xml=None):
+def open(name, path_to_xml=None):
 
     name = Path(name).expanduser()
 
@@ -36,15 +36,15 @@ class RBD:
         self.type = ""
         self.date = ""
         self.time = ""
-        self.data = dict()
+        self.data = np.empty((0))
 
     @property
     def columns(self):
         """
-        Returns the names of the columns in a list.
+        Returns the names of the columns in a tuple.
         """
 
-        return list(self.data.keys())
+        return self.data.dtype.names
 
     def get_time_span(self):
         nonzero = self.data["time"].nonzero()
@@ -144,32 +144,25 @@ class RBD:
         
     def __define_fmt(self):
         bin_header = dict()
-        struct_fmt = "="
         for child in self.__header:
             var_name = child[0].text
             var_dim = int(child[1].text)
             var_type = child[2].text
 
             if var_type == "xs:int":
-                fmt = "i"
                 np_type = np.int32
             elif var_type == "xs:unsignedShort":
-                fmt = "H"
                 np_type = np.uint16
             elif var_type == "xs:short":
-                fmt = "h"
                 np_type = np.int16
             elif var_type == "xs:byte":
-                fmt = "B"
                 np_type = np.byte
             elif var_type == "xs:float":
-                fmt = "f"
                 np_type = np.float32
 
-            struct_fmt += fmt * var_dim
             bin_header.update({var_name:[var_dim, np_type]})
             
-        return bin_header, struct_fmt
+        return bin_header
 
     def from_file(self, path, path_to_xml):
 
@@ -209,37 +202,12 @@ class RBD:
             self.time = date[1][:2] + ":" + date[1][2:4]
         
         self.__header = self.__find_xml_header(path_to_xml)
-        bin_header, struct_fmt = self.__define_fmt()
+        bin_header = self.__define_fmt()
 
-        with open(path, "rb") as f:
-            
-            f.seek(0,2)
-            fsize = f.tell()
-            f.seek(0)
-
-            struct_size = struct.calcsize(struct_fmt)
-            nrecords = fsize // struct_size
-
-            for name, dim in bin_header.items():
-                if dim[0] > 1:
-                    self.data.update({name:np.array(np.empty([nrecords, dim[0]], dim[1]))})
-                else:
-                    self.data.update({name:np.array(np.empty([nrecords], dim[1]))})
-
-            data_pos = 0
-            buffer = f.read(struct_size)
-            while buffer != b'':
-                raw_data = struct.unpack(struct_fmt, buffer)
-                
-                bin_pos = 0
-                for name, dim in bin_header.items():
-                    if dim[0] == 1:
-                        self.data[name][data_pos] = raw_data[bin_pos]
-                    else:
-                        self.data[name][data_pos] = raw_data[bin_pos:bin_pos+dim[0]]
-                    bin_pos += dim[0]
-
-                buffer = f.read(struct_size)
-                data_pos += 1
+        dt_list = list()
+        for key, value in bin_header.items():
+            dt_list.append((key, value[1], value[0]))
+        
+        self.data = np.fromfile(str(path), dtype=dt_list)
 
         return self
