@@ -38,15 +38,32 @@ class RBD:
         self.time = ""
         self.data = dict()
 
+    @property
+    def columns(self):
+        """
+        Returns the names of the columns in a list.
+        """
+
+        return list(self.data.keys())
+
     def get_time_span(self):
         nonzero = self.data["time"].nonzero()
         return time.iso_time(self.data["time"][nonzero[0][0]], self.data["time"][nonzero[0][-1]])
 
     def to_fits(self, name=None, output_path=None):
         t_start, t_end = self.get_time_span()
+
         if not name:
             name = "sst_{}_{}T{}-{}_level0.fits".format(self.type.lower(), self.date, t_start, t_end)
+        name = Path(name)
+
+        if not output_path:
+            output_path = "."
+        output_path = Path(output_path)
         
+        if (output_path / name).exists():
+            raise FileExistsError("File {} already exists.".format(str(name)))
+
         hdu = fits.PrimaryHDU()
         hdu.header.append(('origin', 'CRAAM/Universidade Presbiteriana Mackenzie', ''))
         hdu.header.append(('telescop', 'Solar Submillimeter Telescope', ''))
@@ -73,7 +90,7 @@ class RBD:
         hdu.header.append(('comment', 'purposes only.'))
 
         #History
-        # ...
+        hdu.header.append(("history", "Converted to FITS level-0 with orbd.py"))
 
         dscal = 1.0
         fits_cols = list()
@@ -113,8 +130,7 @@ class RBD:
 
         hdulist = fits.HDUList([hdu, tbhdu])
 
-        hdulist.writeto(name)
-
+        hdulist.writeto(output_path / name)
 
     def __find_xml_header(self, path_to_xml):
         span_table = xmlet.parse(path_to_xml / Path("SSTDataFormatTimeSpanTable.xml")).getroot()
