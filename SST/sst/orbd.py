@@ -1,4 +1,3 @@
-import struct
 from pathlib import Path
 import xml.etree.ElementTree as xmlet
 import numpy as np
@@ -37,6 +36,7 @@ class RBD:
         self.date = ""
         self.time = ""
         self.data = np.empty((0))
+        self.history = list()
 
     @property
     def columns(self):
@@ -73,6 +73,8 @@ class RBD:
         
         rbd.__header = new_header
         rbd.data = self.data[[name for name in columns]]
+
+        rbd.history.append("Reduced Data File. Selected Variables saved")
 
         return rbd
 
@@ -121,6 +123,9 @@ class RBD:
 
         #History
         hdu.header.append(("history", "Converted to FITS level-0 with orbd.py"))
+
+        for hist in self.history:
+            hdu.header.append(("history", hist))
 
         dscal = 1.0
         fits_cols = list()
