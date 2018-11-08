@@ -40,11 +40,41 @@ class RBD:
 
     @property
     def columns(self):
+        """Returns the names of the columns in a tuple."""
+        return self.data.dtype.names
+
+    def reduced(self, columns=None):
         """
-        Returns the names of the columns in a tuple.
+        Returns a reduced version of the RBD.
+        By default the reduced version contains:
+        'time','adc','adcval','elepos','azipos','opmode','target','x_off','y_off'
+
+        It is possible to select which columns the reduced version should have by
+        passing a list containing the names of the wanted columns.
         """
 
-        return self.data.dtype.names
+        if not columns:
+            adc = "adc" if "adc" in self.columns else "adcval"
+            columns = ['time', adc,'elepos','azipos',
+                        'opmode','target','x_off','y_off']
+
+        rbd = RBD()
+        rbd.filename = self.filename
+        rbd.type = self.type
+        rbd.date = self.date
+        rbd.time = self.time
+        
+        #dict() needed so new_header becomes a copy not a pointer
+        new_header = dict(self.__header)
+
+        for column in self.__header.keys():
+            if not column in columns:
+                new_header.pop(column)
+        
+        rbd.__header = new_header
+        rbd.data = self.data[[name for name in columns]]
+
+        return rbd
 
     def get_time_span(self):
         nonzero = self.data["time"].nonzero()
@@ -94,32 +124,29 @@ class RBD:
 
         dscal = 1.0
         fits_cols = list()
-        for child in self.__header:
+        for column, values in self.__header.items():
 
-            var_name = child[0].text
-            var_dim = child[1].text
-            var_type = child[2].text
-            var_unit = child[3].text
+            var_dim = str(values[0])
 
             offset = 0
-            if var_type == "xs:int":
+            if values[1] == np.int32:
                 var_dim += "J"
-            elif var_type == "xs:unsignedShort":
+            elif values[1] == np.uint16:
                 var_dim += "I"
                 offset = 32768
-            elif var_type == "xs:short":
+            elif values[1] == np.int16:
                 var_dim += "I"
-            elif var_type == "xs:byte":
+            elif values[1] == np.byte:
                 var_dim += "B"
-            elif var_type == "xs:float":
+            elif values[1] == np.float32:
                 var_dim += "E"
             
-            fits_cols.append(fits.Column(name=var_name,
+            fits_cols.append(fits.Column(name=column,
                                          format=var_dim,
-                                         unit=var_unit,
+                                         unit=values[2],
                                          bscale=dscal,
                                          bzero=offset,
-                                         array=self.data[var_name]))
+                                         array=self.data[column]))
         
         tbhdu = fits.BinTableHDU.from_columns(fits.ColDefs(fits_cols))
         
@@ -132,7 +159,7 @@ class RBD:
 
         hdulist.writeto(output_path / name)
 
-    def __find_xml_header(self, path_to_xml):
+    def __find_header(self, path_to_xml):
         span_table = xmlet.parse(path_to_xml / Path("SSTDataFormatTimeSpanTable.xml")).getroot()
         filetype = "Data" if self.type == "Integration" or self.type == "Subintegration" else "Auxiliary"
 
@@ -140,14 +167,14 @@ class RBD:
             if child[0].text == filetype and child[1].text <= self.date and child[2].text >= self.date:
                 data_description_filename = child[3].text
         
-        return xmlet.parse(path_to_xml / Path(data_description_filename)).getroot()
+        xml = xmlet.parse(path_to_xml / Path(data_description_filename)).getroot()
         
-    def __define_fmt(self):
-        bin_header = dict()
-        for child in self.__header:
+        header = dict()
+        for child in xml:
             var_name = child[0].text
             var_dim = int(child[1].text)
             var_type = child[2].text
+            var_unit = child[3].text
 
             if var_type == "xs:int":
                 np_type = np.int32
@@ -160,9 +187,9 @@ class RBD:
             elif var_type == "xs:float":
                 np_type = np.float32
 
-            bin_header.update({var_name:[var_dim, np_type]})
-            
-        return bin_header
+            header.update({var_name:[var_dim, np_type, var_unit]})
+
+        return header
 
     def from_file(self, path, path_to_xml):
 
@@ -201,11 +228,10 @@ class RBD:
         if len(date) > 1:
             self.time = date[1][:2] + ":" + date[1][2:4]
         
-        self.__header = self.__find_xml_header(path_to_xml)
-        bin_header = self.__define_fmt()
+        self.__header = self.__find_header(path_to_xml)
 
         dt_list = list()
-        for key, value in bin_header.items():
+        for key, value in self.__header.items():
             dt_list.append((key, value[1], value[0]))
         
         self.data = np.fromfile(str(path), dtype=dt_list)
