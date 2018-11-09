@@ -127,7 +127,7 @@ class RBD:
 
         for column in self._header.keys():
             if not column in columns:
-                new_header.pop(column)
+                del new_header[column]
         
         rbd._header = new_header
         rbd.data = self.data[[name for name in columns]]
