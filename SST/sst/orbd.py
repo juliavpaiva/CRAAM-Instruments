@@ -27,6 +27,48 @@ def open(name, path_to_xml=None):
 
     return RBD().from_file(name, path_to_xml)
     
+def concatenate(rbds):
+        """
+        Method for concatenating RBDs. It returns a new RBD object
+        representing the concatenated data ordered by time.
+        """
+
+        try:
+            new_data = np.concatenate([rbd.data for rbd in rbds])
+        except TypeError:
+            raise TypeError("The objects must have the same data structures.")
+        
+        #Order the data by time
+        new_data = new_data[new_data["time"].argsort()]
+
+        rbd = RBD()
+
+        filenames = list()
+        for r in rbds:
+            if isinstance(r.filename, list):
+                filenames.extend(r.filename)
+            else:
+                filenames.append(r.filename)
+
+        filenames = sorted(filenames)
+
+        rbd.filename = filenames
+
+        rbd.type = rbds[0].type
+        rbd.date = rbds[0].date
+        rbd.data = new_data
+        
+        date = filenames[0].split(".")
+        time = "00:00"
+        if len(date) > 1:
+            time = date[1][:2] + ":" + date[1][2:4]
+
+        rbd.time = time
+
+        rbd._header = rbds[0]._header
+        rbd.history.append("Concatenated Data")
+
+        return rbd
 
 class RBD:
 
@@ -38,6 +80,14 @@ class RBD:
         self.data = np.empty((0))
         self.history = list()
 
+    def __add__(self, other):
+        """
+        Magic method for concatenating RBDs.
+        Usage: rbd3 = rbd1 + rbd2
+        """
+        
+        return concatenate((self, other))
+
     @property
     def columns(self):
         """Returns the names of the columns in a tuple."""
@@ -47,7 +97,15 @@ class RBD:
         """
         Returns a reduced version of the RBD.
         By default the reduced version contains:
-        'time','adc','adcval','elepos','azipos','opmode','target','x_off','y_off'
+             
+             time    : time in Hus
+             azipos  : encoder's azimuth
+             elepos  : encoder's elevation
+             adc or adcval : receiver's output
+             opmode  : oberving mode
+             target  : target observed
+             x_off   : scan offset in azimuth
+             y_off   : scan offset in elevation
 
         It is possible to select which columns the reduced version should have by
         passing a list containing the names of the wanted columns.
@@ -65,13 +123,13 @@ class RBD:
         rbd.time = self.time
         
         #dict() needed so new_header becomes a copy not a pointer
-        new_header = dict(self.__header)
+        new_header = dict(self._header)
 
-        for column in self.__header.keys():
+        for column in self._header.keys():
             if not column in columns:
                 new_header.pop(column)
         
-        rbd.__header = new_header
+        rbd._header = new_header
         rbd.data = self.data[[name for name in columns]]
 
         rbd.history.append("Reduced Data File. Selected Variables saved")
@@ -107,8 +165,8 @@ class RBD:
         hdu.header.append(('t_start', self.date + 'T' + t_end,''))
         hdu.header.append(('t_end', self.date + 'T' + t_start, ''))
         hdu.header.append(('data_typ', self.type, ''))
-        if isinstance(self.filename,list) :
-            for name in self.filename:hdu.header.append(('origfile', name, 'SST Raw Binary Data file'))
+        if isinstance(self.filename, list) :
+            for name in self.filename: hdu.header.append(('origfile', name, 'SST Raw Binary Data file'))
         else:
             hdu.header.append(('origfile',self.filename, 'SST Raw Binary Data file'))
             
@@ -129,7 +187,7 @@ class RBD:
 
         dscal = 1.0
         fits_cols = list()
-        for column, values in self.__header.items():
+        for column, values in self._header.items():
 
             var_dim = str(values[0])
 
@@ -233,10 +291,10 @@ class RBD:
         if len(date) > 1:
             self.time = date[1][:2] + ":" + date[1][2:4]
         
-        self.__header = self.__find_header(path_to_xml)
+        self._header = self.__find_header(path_to_xml)
 
         dt_list = list()
-        for key, value in self.__header.items():
+        for key, value in self._header.items():
             dt_list.append((key, value[1], value[0]))
         
         self.data = np.fromfile(str(path), dtype=dt_list)
