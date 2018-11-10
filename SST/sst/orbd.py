@@ -121,15 +121,7 @@ class RBD:
         rbd.type = self.type
         rbd.date = self.date
         rbd.time = self.time
-        
-        #dict() needed so new_header becomes a copy not a pointer
-        new_header = dict(self._header)
-
-        for column in self._header.keys():
-            if not column in columns:
-                del new_header[column]
-        
-        rbd._header = new_header
+        rbd._header = {column:self._header[column] for column in columns}
         rbd.data = self.data[[name for name in columns]]
 
         rbd.history.append("Reduced Data File. Selected Variables saved")
