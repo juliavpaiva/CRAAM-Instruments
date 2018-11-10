@@ -5,16 +5,31 @@ from astropy.io import fits
 from .utils import time
 
 def open(name, path_to_xml=None):
+    """Function to open a RBD file and return an `RBD` object.
+
+    Parameters
+    ----------
+    name : str, pathlib.Path
+        Location of the RBD file in the file system.
+
+    path_to_xml : str, pathlib.Path, optional
+        Location of the RBD xml description files in the file system.
+        If not defined it is assumed that the path is XMLtables
+        within the module's own directory.
+    
+    Raises
+    ------
+    FileNotFoundError
+        If the RBD file was not found.
+    
+    ValueError
+        If the path to the xml files is invalid.
+    """
 
     name = Path(name).expanduser()
 
-    """
-        If the xml path was not defined it assumes the path is XMLtables
-        inside the module's own directory. __file__ is a python variable
-        that stores where the module is located.
-    """
-
     if not path_to_xml:
+        # __file__ is a python variable that stores where the module is located.
         path_to_xml = Path(__file__).parent / Path("XMLtables/")
     else:
         path_to_xml = Path(path_to_xml)
@@ -22,7 +37,7 @@ def open(name, path_to_xml=None):
     if not name.exists():
         raise FileNotFoundError("File not found: {}".format(name))
 
-    if not path_to_xml.is_dir():
+    if not path_to_xml.exists():
         raise ValueError("Invalid path to XML: {}".format(path_to_xml))
 
     return RBD().from_file(name, path_to_xml)
@@ -31,6 +46,17 @@ def concatenate(rbds):
         """
         Method for concatenating RBDs. It returns a new RBD object
         representing the concatenated data ordered by time.
+
+        Parameters
+        ----------
+            rbds : list, tuple
+                List or tuple of RBD objects to be concatenated.
+                The objects must have the same data structure.
+        
+        Raises
+        ------
+        TypeError
+            If the objects have different data structures.
         """
 
         try:
@@ -91,11 +117,12 @@ class RBD:
     @property
     def columns(self):
         """Returns the names of the columns in a tuple."""
+
         return self.data.dtype.names
 
     def reduced(self, columns=None):
-        """
-        Returns a reduced version of the RBD.
+        """Returns a reduced version of the RBD
+
         By default the reduced version contains:
              
              time    : time in Hus
@@ -107,8 +134,10 @@ class RBD:
              x_off   : scan offset in azimuth
              y_off   : scan offset in elevation
 
-        It is possible to select which columns the reduced version should have by
-        passing a list containing the names of the wanted columns.
+        Parameters
+        ----------
+        columns : list, optional
+            List of which columns the reduced version should contain.
         """
 
         if not columns:
@@ -129,18 +158,54 @@ class RBD:
         return rbd
 
     def get_time_span(self):
+        """
+        Returns a list containing the ISO time of the
+        first and last record found in the data.
+        """
+
         nonzero = self.data["time"].nonzero()
         return time.iso_time(self.data["time"][nonzero[0][0]], self.data["time"][nonzero[0][-1]])
 
     def to_fits(self, name=None, output_path=None):
+        """Writes the RBD data to a FITS file.
+
+        By default the name of the fits file is defined as:
+
+        sst_[integration | subintegration | auxiliary]_YYYY-MM-DDTHH:MM:SS.SSS-HH:MM:SS.SSS_level0.fits
+
+        The file has two HDUs. The primary containing just a header with general
+        information such as the origin, telescope, time zone. The second is a BinaryTable
+        containing the data and a header with data specific information.
+
+        Parameters
+        ----------
+        name : str, optional
+            Name of the fits file.
+        
+        output_path : str, pathlib.Path, optional
+            Output path of the fits file. By default
+            is where the script is being called from.
+        
+        Raises
+        ------
+        FileExistsError
+            If a file with the same name already exists
+            in the output path.
+        """
+
         t_start, t_end = self.get_time_span()
 
         if not name:
             name = "sst_{}_{}T{}-{}_level0.fits".format(self.type.lower(), self.date, t_start, t_end)
+        else:
+            if not name.endswith(".fits"):
+                name += ".fits"
+        
         name = Path(name)
 
         if not output_path:
             output_path = "."
+
         output_path = Path(output_path)
         
         if (output_path / name).exists():
@@ -215,6 +280,13 @@ class RBD:
         hdulist.writeto(output_path / name)
 
     def __find_header(self, path_to_xml):
+        """
+        Method for finding the correct description file.
+        Returns a dict representing the description found,
+        the key is the variable name and the value is a list
+        containing the var dimension, type and unit respectively.
+        """
+
         span_table = xmlet.parse(path_to_xml / Path("SSTDataFormatTimeSpanTable.xml")).getroot()
         filetype = "Data" if self.type == "Integration" or self.type == "Subintegration" else "Auxiliary"
 
@@ -247,6 +319,20 @@ class RBD:
         return header
 
     def from_file(self, path, path_to_xml):
+        """Loads data from a file and returns an `RBD` object.
+
+        Parameters
+        ----------
+            path : pathlib.Path
+                Location of the RBD file in the file system.
+            path_to_xml : Path, optional
+                Location of the RBD xml description files in the file system.
+
+        Raises
+        ------
+        ValueError
+            If the filename is invalid.
+        """
 
         self.filename = path.name
         type_prefix = self.filename[:2].upper()
@@ -258,8 +344,7 @@ class RBD:
         elif type_prefix == "BI":
             self.type = "Auxiliary"
         else:
-            #raise exception invalid filename
-            pass
+            raise ValueError("Invalid filename {}".format(self.filename))
 
         date = self.filename[2:].split(".")
 
@@ -276,8 +361,7 @@ class RBD:
         elif len(date[0]) == 7:
             self.date = str(int(date[0][:3]) + 1900) + '-' + date[0][3:5] + '-' + date[0][5:7]
         else:
-            #raise exception invalid filename
-            pass
+            raise ValueError("Invalid filename {}".format(self.filename))
 
         self.time = "00:00"
         if len(date) > 1:
