@@ -4,13 +4,17 @@ import numpy as np
 from astropy.io import fits
 from .utils import time
 
-def open(name, path_to_xml=None):
+def open(path, name=None, path_to_xml=None):
     """Function to open a RBD file and return an `RBD` object.
 
     Parameters
     ----------
-    name : str, pathlib.Path
-        Location of the RBD file in the file system.
+    path : str, pathlib.Path, buffer
+        File to be opened.
+
+    name : str, optional
+        Name of the RBD file. Only needed if path
+        is a buffer.
 
     path_to_xml : str, pathlib.Path, optional
         Location of the RBD xml description files in the file system.
@@ -26,21 +30,22 @@ def open(name, path_to_xml=None):
         If the path to the xml files is invalid.
     """
 
-    name = Path(name).expanduser()
-
     if not path_to_xml:
         # __file__ is a python variable that stores where the module is located.
         path_to_xml = Path(__file__).parent / Path("XMLtables/")
     else:
         path_to_xml = Path(path_to_xml)
 
-    if not name.exists():
-        raise FileNotFoundError("File not found: {}".format(name))
-
+    if not isinstance(path, bytes):
+        path = Path(path).expanduser()
+        if not path.exists():
+            raise FileNotFoundError("File not found: {}".format(path))
+        name = path.name
+        
     if not path_to_xml.exists():
         raise ValueError("Invalid path to XML: {}".format(path_to_xml))
 
-    return RBD().from_file(name, path_to_xml)
+    return RBD().from_file(path, name, path_to_xml)
     
 def concatenate(rbds):
         """
@@ -318,13 +323,17 @@ class RBD:
 
         return header
 
-    def from_file(self, path, path_to_xml):
+    def from_file(self, path, name, path_to_xml):
         """Loads data from a file and returns an `RBD` object.
 
         Parameters
         ----------
             path : pathlib.Path
                 Location of the RBD file in the file system.
+
+            name : str
+                Name of the RBD file.
+
             path_to_xml : Path, optional
                 Location of the RBD xml description files in the file system.
 
@@ -334,7 +343,7 @@ class RBD:
             If the filename is invalid.
         """
 
-        self.filename = path.name
+        self.filename = name
         type_prefix = self.filename[:2].upper()
 
         if type_prefix == "RS":
@@ -373,6 +382,9 @@ class RBD:
         for key, value in self._header.items():
             dt_list.append((key, value[1], value[0]))
         
-        self.data = np.fromfile(str(path), dtype=dt_list)
+        if isinstance(path, bytes):
+            self.data = np.frombuffer(path, dtype=dt_list)
+        else:
+            self.data = np.fromfile(str(path), dtype=dt_list)
 
         return self
