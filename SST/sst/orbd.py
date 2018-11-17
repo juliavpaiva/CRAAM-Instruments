@@ -211,7 +211,7 @@ class RBD:
         if not output_path:
             output_path = "."
 
-        output_path = Path(output_path)
+        output_path = Path(output_path).expanduser()
         
         if (output_path / name).exists():
             raise FileExistsError("File {} already exists.".format(str(name)))
@@ -228,7 +228,7 @@ class RBD:
         hdu.header.append(('t_end', self.date + 'T' + t_start, ''))
         hdu.header.append(('data_typ', self.type, ''))
         if isinstance(self.filename, list) :
-            for name in self.filename: hdu.header.append(('origfile', name, 'SST Raw Binary Data file'))
+            for fname in self.filename: hdu.header.append(('origfile', fname, 'SST Raw Binary Data file'))
         else:
             hdu.header.append(('origfile',self.filename, 'SST Raw Binary Data file'))
             
