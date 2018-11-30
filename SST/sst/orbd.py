@@ -164,12 +164,12 @@ class RBD:
 
     def get_time_span(self):
         """
-        Returns a list containing the ISO time of the
+        Returns a tuple containing the ISO time of the
         first and last record found in the data.
         """
 
         nonzero = self.data["time"].nonzero()
-        return time.iso_time(self.data["time"][nonzero[0][0]], self.data["time"][nonzero[0][-1]])
+        return (time.iso_time(self.data["time"][nonzero[0][0]]), time.iso_time(self.data["time"][nonzero[0][-1]]))
 
     def to_fits(self, name=None, output_path=None):
         """Writes the RBD data to a FITS file.
