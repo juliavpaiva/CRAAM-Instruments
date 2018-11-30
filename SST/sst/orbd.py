@@ -224,8 +224,8 @@ class RBD:
         hdu.header.append(('tz', 'GMT-3', ''))
 
         hdu.header.append(('date-obs', self.date, ''))
-        hdu.header.append(('t_start', self.date + 'T' + t_end,''))
-        hdu.header.append(('t_end', self.date + 'T' + t_start, ''))
+        hdu.header.append(('t_start', self.date + 'T' + t_start,''))
+        hdu.header.append(('t_end', self.date + 'T' + t_end, ''))
         hdu.header.append(('data_typ', self.type, ''))
         if isinstance(self.filename, list) :
             for fname in self.filename: hdu.header.append(('origfile', fname, 'SST Raw Binary Data file'))
