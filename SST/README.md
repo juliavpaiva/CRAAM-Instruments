@@ -13,7 +13,7 @@ rbd = orbd.open("TestData/rs1150621.1700")
 #Get info
 print(rbd.type) # Integration
 print(rbd.date) # 2015-06-21
-print(rbd.time) # 18:00
+print(rbd.time) # 17:00
 print(rbd.filename) # rs1150621.1700
 print(rbd.columns) # ('time', 'adcval', 'pos_time', 'azipos', 'elepos', 'pm_daz', ...)
 print(rbd.data["adcval"]) # [[23836 17558 21127 16463  9802 16893] ...]
