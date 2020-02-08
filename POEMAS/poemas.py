@@ -71,6 +71,18 @@ class POEMAS(object):
         return (julday.time(int(self.data["sec"][nonzero[0][0]])),
         julday.time(int(self.data["sec"][nonzero[0][-1]])))
     
+    @property
+    def headercolumns(self):
+        """Returns the names of the header columns in a tuple."""
+
+        return self.headerdata.dtype.names
+
+    @property
+    def columns(self):
+        """Returns the names of the columns in a tuple."""
+
+        return self.data.dtype.names
+    
     def get_date(self):
 
         """
@@ -136,7 +148,7 @@ class POEMAS(object):
 
         hdu = fits.PrimaryHDU()
         hdu.header.append(('origin', 'CRAAM/Universidade Presbiteriana Mackenzie', ''))
-        hdu.header.append(('telescop', 'POEMAS - Plarization Emission of Millimeter Activity at the Sun', ''))
+        hdu.header.append(('telescop', 'POEMAS - POlarization Emission of Millimeter Activity at the Sun', ''))
         hdu.header.append(('observat', 'CASLEO', '')) 
         hdu.header.append(('station', 'Lat = -31.79897222, Lon = -69.29669444, Height = 2.491 km', ''))
         hdu.header.append(('tz', 'GMT-3', ''))
