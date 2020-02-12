@@ -55,6 +55,7 @@ class POEMAS(object):
         self.type = ""
         self.date = ""
         self.time = ""
+        self.records = 0
         self.headerdata = np.empty((0))
         self.data = np.empty((0))
         self.history = list()
@@ -190,13 +191,16 @@ class POEMAS(object):
             else:
                 var_dim += "E"
             
+            print(self.records, " ",type(self.records))
+            header_array = np.repeat(self.headerdata, self.records , axis=0)
+            #print(header_array)
             fits_cols.append(fits.Column(name=column,
                                          format=var_dim,
                                          unit=values[2],
                                          bscale=dscal,
                                          bzero=offset,
-                                         array=self.headerdata[column]))
-        
+                                         array= header_array[column]))
+            
         for column, values in self._tblheader.items():
 
             var_dim = str(values[0])
@@ -206,13 +210,15 @@ class POEMAS(object):
                 var_dim += "J"
             else:
                 var_dim += "E"
-            
+
             fits_cols.append(fits.Column(name=column,
-                                         format=var_dim,
-                                         unit=values[2],
-                                         bscale=dscal,
-                                         bzero=offset,
-                                         array=self.data[column]))
+                                            format=var_dim,
+                                            unit=values[2],
+                                            bscale=dscal,
+                                            bzero=offset,
+                                            array=self.data[column]))
+            
+            
 
         tbhdu = fits.BinTableHDU.from_columns(fits.ColDefs(fits_cols))
 
@@ -303,5 +309,6 @@ class POEMAS(object):
             self.data = np.fromfile(str(path), dt_list, offset=28)
 
         self.date, self.time = self.get_date().split(" ")
+        self.records = self.headerdata[0][1]
         
         return self 
