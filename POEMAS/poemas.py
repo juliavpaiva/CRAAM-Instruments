@@ -131,7 +131,7 @@ class POEMAS(object):
         
         if not name:
             name = "poemas_{}_{}_{}T{}_level0.fits".format(self.type.lower(), self.date, t_start, t_end)
-            print(name)
+            
         else:
             if not name.endswith(".fits"):
                 name += ".fits"
@@ -191,9 +191,8 @@ class POEMAS(object):
             else:
                 var_dim += "E"
             
-            print(self.records, " ",type(self.records))
+            
             header_array = np.repeat(self.headerdata, self.records , axis=0)
-            #print(header_array)
             fits_cols.append(fits.Column(name=column,
                                          format=var_dim,
                                          unit=values[2],
