@@ -18,7 +18,7 @@ def open(path, name=None, path_to_xml=None):
         is a buffer.
     path_to_xml : str, pathlib.Path, optional
         Location of the POEMAS xml description files in the file system.
-        If not defined it is assumed that the path is XMLtables
+        If not defined it is assumed that the path is XMLTbles
         within the module's own directory.
     
     Raises
@@ -32,7 +32,7 @@ def open(path, name=None, path_to_xml=None):
 
     if not path_to_xml:
         # __file__ is a python variable that stores where the module is located.
-        path_to_xml = Path(__file__).parent / Path("XMLtables/")
+        path_to_xml = Path(__file__).parent / Path("XMLTables/")
     else:
         path_to_xml = Path(path_to_xml)
 
@@ -236,9 +236,9 @@ class POEMAS(object):
         """
 
         if xml_type == "head":
-            xml = xmlet.parse(path_to_xml / "POEMASDataFormatHead.xml").getroot()
+            xml = xmlet.parse(path_to_xml / Path("POEMASDataFormatHead.xml")).getroot()
         elif xml_type == "tbl":
-            xml = xmlet.parse(path_to_xml / "POEMASDataFormat.xml").getroot()
+            xml = xmlet.parse(path_to_xml / Path("POEMASDataFormat.xml")).getroot()
         else:
             raise ValueError("Invalid xml type: {}".format(xml_type))
 
