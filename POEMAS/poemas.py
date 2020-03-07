@@ -3,6 +3,7 @@ import xml.etree.ElementTree as xmlet
 import numpy as np
 from astropy.io import fits
 from utils import julday
+import collections
 
 
 def open(path, name=None, path_to_xml=None):
@@ -191,15 +192,39 @@ class POEMAS(object):
             else:
                 var_dim += "E"
             
-            
-            header_array = np.repeat(self.headerdata, self.records , axis=0)
+            header_array = np.repeat(self.headerdata, self.records * 100 , axis=0)
             fits_cols.append(fits.Column(name=column,
                                          format=var_dim,
                                          unit=values[2],
                                          bscale=dscal,
                                          bzero=offset,
                                          array= header_array[column]))
-            
+       
+
+        dt_array = [ [], [], [], [], [], [], [] ]
+
+        for i in range (0,self.records):
+
+            for j in range (0,7):
+                
+                if(j == 0):
+                    
+                    dt_array[j].extend([self.data[i][j]]*100) #temporary
+
+                elif(j>0 and j<=2):
+                    
+                    dt_array[j].extend([self.data[i][j]]*100)
+                
+                else: 
+                    dt_array[j].extend(num for num in self.data[i][j])
+        
+        self._tblheader['TBL_45'][0] = 1
+        self._tblheader['TBR_45'][0] = 1
+        self._tblheader['TBL_90'][0] = 1
+        self._tblheader['TBR_90'][0] = 1
+        
+    
+        id = 0
         for column, values in self._tblheader.items():
 
             var_dim = str(values[0])
@@ -209,17 +234,18 @@ class POEMAS(object):
                 var_dim += "J"
             else:
                 var_dim += "E"
-
+            
             fits_cols.append(fits.Column(name=column,
-                                            format=var_dim,
-                                            unit=values[2],
-                                            bscale=dscal,
-                                            bzero=offset,
-                                            array=self.data[column]))
+                                                format=var_dim,
+                                                unit=values[2],
+                                                bscale=dscal,
+                                                bzero=offset,
+                                                array=dt_array[id]))
             
-            
+            id += 1
 
         tbhdu = fits.BinTableHDU.from_columns(fits.ColDefs(fits_cols))
+
 
         hdulist = fits.HDUList([hdu, tbhdu])
 
@@ -243,6 +269,7 @@ class POEMAS(object):
             raise ValueError("Invalid xml type: {}".format(xml_type))
 
         header = dict()
+        header = collections.OrderedDict()
         for child in xml:
             var_name = child[0].text
             var_dim = int(child[1].text)
@@ -298,8 +325,7 @@ class POEMAS(object):
         dt_list = list()
         for key, value in self._tblheader.items():
             dt_list.append((key, value[1], value[0]))
-
-
+            
         if isinstance(path, bytes):
             self.headerdata = np.frombuffer(path, hdt_list, count = 1)
             self.data = np.frombuffer(path, dt_list, offset=28)
