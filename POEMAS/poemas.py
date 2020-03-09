@@ -209,7 +209,9 @@ class POEMAS(object):
                 
                 if(j == 0):
                     
-                    dt_array[j].extend([self.data[i][j]]*100) #temporary
+                    msec = julday.msec(int(self.data[i][j]))
+                    msec_array = [n for n in range(msec, msec+(100*10),10)]
+                    dt_array[j].extend(msec_array)
 
                 elif(j>0 and j<=2):
                     
@@ -217,15 +219,15 @@ class POEMAS(object):
                 
                 else: 
                     dt_array[j].extend(num for num in self.data[i][j])
-        
-        self._tblheader['TBL_45'][0] = 1
-        self._tblheader['TBR_45'][0] = 1
-        self._tblheader['TBL_90'][0] = 1
-        self._tblheader['TBR_90'][0] = 1
-        
+            
+        new_tblheader = self._tblheader
+        new_tblheader['TBL_45'][0] = 1
+        new_tblheader['TBR_45'][0] = 1
+        new_tblheader['TBL_90'][0] = 1
+        new_tblheader['TBR_90'][0] = 1
     
         id = 0
-        for column, values in self._tblheader.items():
+        for column, values in new_tblheader.items():
 
             var_dim = str(values[0])
 
@@ -234,8 +236,13 @@ class POEMAS(object):
                 var_dim += "J"
             else:
                 var_dim += "E"
+
+            if(id == 0):
+                _name = 'msec'
+            else:
+                _name = column
             
-            fits_cols.append(fits.Column(name=column,
+            fits_cols.append(fits.Column(name=_name,
                                                 format=var_dim,
                                                 unit=values[2],
                                                 bscale=dscal,

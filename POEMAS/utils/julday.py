@@ -9,3 +9,8 @@ def date(jd):
 
     date = str((datetime(2001, 1, 1) + timedelta(seconds=jd)).date())
     return date
+
+def msec(sec):
+
+    msec = timedelta(seconds=sec).seconds * 1000
+    return msec
