@@ -205,7 +205,7 @@ class POEMAS(object):
 
         for i in range (0,self.records):
 
-            for j in range (0,7):
+            for j in range (0,4):
                 
                 if(j == 0):
                     
@@ -216,18 +216,20 @@ class POEMAS(object):
                 elif(j>0 and j<=2):
                     
                     dt_array[j].extend([self.data[i][j]]*100)
-                
-                else: 
-                    dt_array[j].extend(num for num in self.data[i][j])
-            
-        new_tblheader = self._tblheader
-        new_tblheader['TBL_45'][0] = 1
-        new_tblheader['TBR_45'][0] = 1
-        new_tblheader['TBL_90'][0] = 1
-        new_tblheader['TBR_90'][0] = 1
-    
+        
+                else:
+                    
+                    cont = 3
+                    for k in range (0,400):
+                        dt_array[cont].append(self.data[i][j][k])
+
+                        if cont >= 6:
+                            cont = 3
+                        else:
+                            cont+=1
+
         id = 0
-        for column, values in new_tblheader.items():
+        for column, values in self._newtblheader.items():
 
             var_dim = str(values[0])
 
@@ -272,6 +274,8 @@ class POEMAS(object):
             xml = xmlet.parse(path_to_xml / Path("POEMASDataFormatHead.xml")).getroot()
         elif xml_type == "tbl":
             xml = xmlet.parse(path_to_xml / Path("POEMASDataFormat.xml")).getroot()
+        elif xml_type == "new":
+            xml = xmlet.parse(path_to_xml / Path("POEMASNewDataFormat.xml")).getroot()
         else:
             raise ValueError("Invalid xml type: {}".format(xml_type))
 
@@ -322,16 +326,18 @@ class POEMAS(object):
             self.type = "TRK"
         
         self._header = self.__find_header(path_to_xml,"head")
-
         hdt_list = list()
         for key, value in self._header.items():
             hdt_list.append((key, value[1], value[0]))
 
-        self._tblheader = self.__find_header(path_to_xml,"tbl")
 
+        self._tblheader = self.__find_header(path_to_xml,"tbl")
         dt_list = list()
         for key, value in self._tblheader.items():
             dt_list.append((key, value[1], value[0]))
+
+        self._newtblheader = self.__find_header(path_to_xml,"new")
+
             
         if isinstance(path, bytes):
             self.headerdata = np.frombuffer(path, hdt_list, count = 1)
@@ -340,6 +346,7 @@ class POEMAS(object):
             self.headerdata = np.fromfile(str(path), hdt_list, count = 1)
             self.data = np.fromfile(str(path), dt_list, offset=28)
 
+        
         self.date, self.time = self.get_date().split(" ")
         self.records = self.headerdata[0][1]
         
