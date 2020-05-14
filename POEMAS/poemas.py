@@ -174,7 +174,7 @@ class POEMAS(object):
         hdu.header.append(('comment', 'purposes only.'))
 
         #History
-        hdu.header.append(("history", "Converted to FITS level-0 with trk.py")) #modificar
+        hdu.header.append(("history", "Converted to FITS level-0 with poemas.py")) #modificar
 
         for hist in self.history:
             hdu.header.append(("history", hist))
@@ -218,15 +218,15 @@ class POEMAS(object):
                     dt_array[j].extend([self.data[i][j]]*100)
         
                 else:
-                    
-                    cont = 3
-                    for k in range (0,400):
-                        dt_array[cont].append(self.data[i][j][k])
 
-                        if cont >= 6:
-                            cont = 3
-                        else:
-                            cont+=1
+                    tb_array = self.data[i][j].reshape(100,4)
+                    tb_array = tb_array.transpose()
+
+                    cont = 3
+                    for tb in tb_array:
+                        dt_array[cont].extend(tb)
+
+                        cont+=1
 
         id = 0
         for column, values in self._newtblheader.items():
