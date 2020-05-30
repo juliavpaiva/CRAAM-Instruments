@@ -61,6 +61,7 @@ class POEMAS(object):
         self.headerdata = np.empty((0))
         self.data = np.empty((0))
         self.new_data = np.empty((0))
+        self.file_info = {}
         self.data = np.empty((0))
         self.history = list()
     
@@ -405,5 +406,13 @@ class POEMAS(object):
             self.poemas_type = "Integration"
             self._newtblheader = self.__find_header(path_to_xml,"int")
             self.integration()
+
+        t_start, t_end = self.get_time_span()
+
+        self.file_info.update({"Filename": name , 
+                               "Date": self.date, 
+                               "Initial Time": t_start, 
+                               "Final Time":  t_end,
+                               "POEMAStype": self.poemas_type})
 
         return self 
