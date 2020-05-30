@@ -6,7 +6,7 @@ from utils import julday
 import collections
 
 
-def open(path, name=None, path_to_xml=None):
+def openP(path, name=None, path_to_xml=None, ms=None):
 
     """
     Function to open a POEMAS file and return an `POEMAS` object.
@@ -46,18 +46,21 @@ def open(path, name=None, path_to_xml=None):
     if not path_to_xml.exists():
         raise ValueError("Invalid path to XML: {}".format(path_to_xml))
 
-    return POEMAS().from_file(path, name, path_to_xml)
+    return POEMAS().from_file(path, name, path_to_xml, ms)
 
 
 class POEMAS(object):
 
     def __init__(self):
         self.filename = ""
+        self.poemas_type = ""
         self.type = ""
         self.date = ""
         self.time = ""
         self.records = 0
         self.headerdata = np.empty((0))
+        self.data = np.empty((0))
+        self.new_data = np.empty((0))
         self.data = np.empty((0))
         self.history = list()
     
@@ -159,6 +162,7 @@ class POEMAS(object):
         hdu.header.append(('t_start', self.date + 'T' + t_start,''))
         hdu.header.append(('t_end', self.date + 'T' + t_end, ''))
         hdu.header.append(('data_typ', self.type, ''))
+        
         if isinstance(self.filename, list) :
             for fname in self.filename: hdu.header.append(('origfile', fname, 'POEMAS Raw Binary Data file')) 
         else:
@@ -174,7 +178,7 @@ class POEMAS(object):
         hdu.header.append(('comment', 'purposes only.'))
 
         #History
-        hdu.header.append(("history", "Converted to FITS level-0 with poemas.py")) #modificar
+        hdu.header.append(("history", "Converted to FITS level-0 with poemas.py"))
 
         for hist in self.history:
             hdu.header.append(("history", hist))
@@ -192,15 +196,90 @@ class POEMAS(object):
             else:
                 var_dim += "E"
             
-            header_array = np.repeat(self.headerdata, self.records * 100 , axis=0)
+            if self.poemas_type == "Subintegration":
+                header_array = np.repeat(self.headerdata, self.records * 100 , axis=0)
+            else:
+                header_array = np.repeat(self.headerdata, self.records, axis=0)
             fits_cols.append(fits.Column(name=column,
                                          format=var_dim,
                                          unit=values[2],
                                          bscale=dscal,
                                          bzero=offset,
                                          array= header_array[column]))
-       
+  
+        id = 0
+        for column, values in self._newtblheader.items():
 
+            var_dim = str(values[0])
+
+            offset = 0
+            if values[1] == np.int32:
+                var_dim += "J"
+            else:
+                var_dim += "E"
+
+            if id == 0 and self.poemas_type == "Subintegration":
+                _name = 'msec'
+            else:
+                _name = column
+            
+            
+            fits_cols.append(fits.Column(name=_name,
+                                        format=var_dim,
+                                        unit=values[2],
+                                        bscale=dscal,
+                                        bzero=offset,
+                                        array=self.new_data[id]))
+            id += 1
+            
+
+        tbhdu = fits.BinTableHDU.from_columns(fits.ColDefs(fits_cols))
+
+
+        hdulist = fits.HDUList([hdu, tbhdu])
+
+        hdulist.writeto(output_path / name)
+
+
+    def __find_header(self, path_to_xml, xml_type):
+
+        """
+        Method for finding the correct description file.
+        Returns a dict representing the description found,
+        the key is the variable name and the value is a list
+        containing the var dimension, type and unit respectively.
+        """
+
+        if xml_type == "head":
+            xml = xmlet.parse(path_to_xml / Path("POEMASDataFormatHead.xml")).getroot()
+        elif xml_type == "tbl":
+            xml = xmlet.parse(path_to_xml / Path("POEMASDataFormat.xml")).getroot()
+        elif xml_type == "sub":
+            xml = xmlet.parse(path_to_xml / Path("POEMASSubintegrationDataFormat.xml")).getroot()
+        elif xml_type == "int":
+            xml = xmlet.parse(path_to_xml / Path("POEMASIntegrationDataFormat.xml")).getroot()
+        else:
+            raise ValueError("Invalid xml type: {}".format(xml_type))
+
+        header = dict()
+        header = collections.OrderedDict()
+        for child in xml:
+            var_name = child[0].text
+            var_dim = int(child[1].text)
+            var_type = child[2].text
+            var_unit = child[3].text
+
+            if var_type == "xs:int":
+                np_type = np.int32
+            elif var_type == "xs:float":
+                np_type = np.float32
+
+            header.update({var_name:[var_dim, np_type, var_unit]})
+
+        return header
+
+    def subintegration(self):
+    
         dt_array = [ [], [], [], [], [], [], [] ]
 
         for i in range (0,self.records):
@@ -227,77 +306,48 @@ class POEMAS(object):
                         dt_array[cont].extend(tb)
 
                         cont+=1
+        
+        self.new_data = np.array(dt_array) 
+        
+        return self
+    
+    def integration(self):
 
-        id = 0
-        for column, values in self._newtblheader.items():
+        dt_array = [ [], [], [],    [], [], [], [],    [], [], [], []]
 
-            var_dim = str(values[0])
+        for i in range (0,self.records):
 
-            offset = 0
-            if values[1] == np.int32:
-                var_dim += "J"
-            else:
-                var_dim += "E"
-
-            if(id == 0):
-                _name = 'msec'
-            else:
-                _name = column
-            
-            fits_cols.append(fits.Column(name=_name,
-                                                format=var_dim,
-                                                unit=values[2],
-                                                bscale=dscal,
-                                                bzero=offset,
-                                                array=dt_array[id]))
-            
-            id += 1
-
-        tbhdu = fits.BinTableHDU.from_columns(fits.ColDefs(fits_cols))
+            for j in range (0,4):
+                
+                if(j == 0):
+                    sec = julday.msec(int(self.data[i][j]))
+                    dt_array[j].append(sec)
 
 
-        hdulist = fits.HDUList([hdu, tbhdu])
+                elif(j>0 and j<=2):
+                    dt_array[j].extend([self.data[i][j]])
+        
+                else:
 
-        hdulist.writeto(output_path / name)
+                    tb_array = self.data[i][j].reshape(100,4)
+                    tb_array = tb_array.transpose()
 
+                    cont = 3
+                    for tb in tb_array:
+                        mean = np.mean(tb)
+                        dt_array[cont].append(mean)
+                        cont+=1
 
-    def __find_header(self, path_to_xml, xml_type):
+                    for tb in tb_array:
+                        std = np.std(tb)
+                        dt_array[cont].append(std)
+                        cont+=1
+        
+        self.new_data = np.array(dt_array) 
+        
+        return self
 
-        """
-        Method for finding the correct description file.
-        Returns a dict representing the description found,
-        the key is the variable name and the value is a list
-        containing the var dimension, type and unit respectively.
-        """
-
-        if xml_type == "head":
-            xml = xmlet.parse(path_to_xml / Path("POEMASDataFormatHead.xml")).getroot()
-        elif xml_type == "tbl":
-            xml = xmlet.parse(path_to_xml / Path("POEMASDataFormat.xml")).getroot()
-        elif xml_type == "new":
-            xml = xmlet.parse(path_to_xml / Path("POEMASNewDataFormat.xml")).getroot()
-        else:
-            raise ValueError("Invalid xml type: {}".format(xml_type))
-
-        header = dict()
-        header = collections.OrderedDict()
-        for child in xml:
-            var_name = child[0].text
-            var_dim = int(child[1].text)
-            var_type = child[2].text
-            var_unit = child[3].text
-
-            if var_type == "xs:int":
-                np_type = np.int32
-            elif var_type == "xs:float":
-                np_type = np.float32
-
-            header.update({var_name:[var_dim, np_type, var_unit]})
-
-        return header
-
-
-    def from_file(self, path, name, path_to_xml):
+    def from_file(self, path, name, path_to_xml, ms):
 
         """Loads data from a file and returns an `POEMAS` object.
         Parameters
@@ -335,10 +385,7 @@ class POEMAS(object):
         dt_list = list()
         for key, value in self._tblheader.items():
             dt_list.append((key, value[1], value[0]))
-
-        self._newtblheader = self.__find_header(path_to_xml,"new")
-
-            
+       
         if isinstance(path, bytes):
             self.headerdata = np.frombuffer(path, hdt_list, count = 1)
             self.data = np.frombuffer(path, dt_list, offset=28)
@@ -350,4 +397,13 @@ class POEMAS(object):
         self.date, self.time = self.get_date().split(" ")
         self.records = self.headerdata[0][1]
         
+        if ms == 0 or ms == None:
+            self.poemas_type = "Subintegration"
+            self._newtblheader = self.__find_header(path_to_xml,"sub")
+            self.subintegration()
+        elif ms == 1:
+            self.poemas_type = "Integration"
+            self._newtblheader = self.__find_header(path_to_xml,"int")
+            self.integration()
+
         return self 
